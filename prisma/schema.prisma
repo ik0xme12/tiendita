@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Rol {
+  ADMIN
+  CLIENTE
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  ACEPTADO
+  EN_PREPARACION
+  LISTO
+  ENTREGADO
+  CANCELADO
+}
+
+enum TipoEntrega {
+  INMEDIATA
+  PROGRAMADA
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  FALLIDO
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  nombre       String
+  telefono     String   @unique
+  password     String
+  rol          Rol      @default(CLIENTE)
+  torre        String?
+  departamento String?
+  activo       Boolean  @default(true)
+  creadoEn     DateTime @default(now())
+  pedidos      Pedido[]
+}
+
+model Categoria {
+  id        String     @id @default(cuid())
+  nombre    String     @unique
+  orden     Int        @default(0)
+  activa    Boolean    @default(true)
+  productos Producto[]
+}
+
+model Producto {
+  id          String          @id @default(cuid())
+  nombre      String
+  descripcion String?
+  precio      Float
+  stock       Int             @default(0)
+  imagen      String?
+  activo      Boolean         @default(true)
+  categoriaId String
+  categoria   Categoria       @relation(fields: [categoriaId], references: [id])
+  creadoEn    DateTime        @default(now())
+  detalles    DetallePedido[]
+}
+
+model Pedido {
+  id                String          @id @default(cuid())
+  numero            Int             @unique @default(autoincrement())
+  usuarioId         String
+  usuario           Usuario         @relation(fields: [usuarioId], references: [id])
+  estado            EstadoPedido    @default(PENDIENTE)
+  tipoEntrega       TipoEntrega
+  entregaProgramada DateTime?
+  notas             String?
+  total             Float
+  creadoEn          DateTime        @default(now())
+  actualizadoEn     DateTime        @updatedAt
+  detalles          DetallePedido[]
+  pago              Pago?
+}
+
+model DetallePedido {
+  id         String   @id @default(cuid())
+  pedidoId   String
+  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  productoId String
+  producto   Producto @relation(fields: [productoId], references: [id])
+  cantidad   Int
+  precio     Float
+}
+
+model Pago {
+  id            String     @id @default(cuid())
+  pedidoId      String     @unique
+  pedido        Pedido     @relation(fields: [pedidoId], references: [id])
+  metodo        MetodoPago
+  estado        EstadoPago @default(PENDIENTE)
+  monto         Float
+  referencia    String?
+  mpPaymentId   String?
+  creadoEn      DateTime   @default(now())
+  actualizadoEn DateTime   @updatedAt
+}
